@@ -1,0 +1,44 @@
+/* Dashboard-specific styles */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+}
+
+.recent-sales-row:hover {
+    background: var(--glass);
+}
+
+.top-product-bar {
+    height: 6px;
+    border-radius: 99px;
+    background: var(--indigo);
+    margin-top: 4px;
+}
+
+@media(max-width:1200px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media(max-width:640px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
