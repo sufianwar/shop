@@ -11,11 +11,11 @@ export const exportSalesPDF = (sales, title = "Sales Report") => {
 
   autoTable(doc, {
     startY: 28,
-    head: [["Invoice", "Customer", "Date", "Method", "Total", "Status"]],
+    head: [["Invoice", "Customer", "Date", "Method", "Total", "Paid", "Due", "Status"]],
     body: sales.map(s => [
       s.invoiceNo, s.customerName,
       new Date(s.createdAt).toLocaleDateString(),
-      s.paymentMethod, `Rs ${s.total}`, s.status,
+      s.paymentMethod, `Rs ${s.total}`, `Rs ${s.paid_amount || s.amountPaid}`, `Rs ${s.due_amount || 0}`, s.payment_status || s.status,
     ]),
     theme: "striped",
     headStyles: { fillColor: [99, 102, 241] },

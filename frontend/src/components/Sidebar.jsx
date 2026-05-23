@@ -6,15 +6,18 @@ import { useAuth } from "../context/AuthContext";
 const NAV = [
   { path: "/", label: "Dashboard", icon: "📊", roles: ["admin", "manager", "cashier"] },
   { path: "/sales", label: "POS / Sales", icon: "🛒", roles: ["admin", "manager", "cashier"] },
-  { path: "/products", label: "Products", icon: "📦", roles: ["admin", "manager", "cashier"] },
+  { path: "/products", label: "Products", icon: "📦", roles: ["admin", "manager"] },
   { path: "/categories", label: "Categories", icon: "📂", roles: ["admin", "manager"] },
-  { path: "/purchase", label: "Purchase", icon: "🏪", roles: ["admin", "manager"] },
   { path: "/customers", label: "Customers", icon: "👥", roles: ["admin", "manager", "cashier"] },
+  { path: "/purchase", label: "Purchase", icon: "🏪", roles: ["admin", "manager"] },
   { path: "/suppliers", label: "Suppliers", icon: "🚚", roles: ["admin", "manager"] },
-  { path: "/expenses", label: "Expenses", icon: "💸", roles: ["admin", "manager"] },
-  { path: "/analytics", label: "Analytics", icon: "📈", roles: ["admin", "manager"] },
   { path: "/reports", label: "Reports", icon: "📋", roles: ["admin", "manager"] },
+  { path: "/ledger", label: "Ledger", icon: "📓", roles: ["admin", "manager"] },
+  { path: "/expenses", label: "Expenses", icon: "💸", roles: ["admin", "manager"] },
+  { path: "/returns", label: "Returns", icon: "🔄", roles: ["admin", "manager", "cashier"] },
+  { path: "/analytics", label: "Analytics", icon: "📈", roles: ["admin", "manager"] },
   { path: "/settings", label: "Settings", icon: "⚙️", roles: ["admin"] },
+  { path: "/sales/deleted", label: "Deleted Receipts", icon: "🗑️", roles: ["admin"] },
 ];
 export default function Sidebar({ collapsed, onToggle }) {
 const { user, logout } = useAuth();

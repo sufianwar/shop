@@ -89,13 +89,16 @@ export default function Sales() {
               <span className="search-icon">🔍</span>
               <input placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {cats.map(c => (
-                <button key={c} onClick={() => setCatFilter(c)}
-                  className={`btn btn-sm ${catFilter === c ? "btn-primary" : "btn-ghost"}`}>
-                  {c}
-                </button>
-              ))}
+            <div style={{ minWidth: 150 }}>
+              <select 
+                className="form-select" 
+                value={catFilter} 
+                onChange={(e) => setCatFilter(e.target.value)}
+              >
+                {cats.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -155,7 +158,7 @@ export default function Sales() {
               <option value="credit">📋 Credit</option>
             </select>
           </div>
-          {payMethod === "cash" && (
+          {payMethod !== "credit" && (
             <div className="form-group">
               <label className="form-label">Amount Received (Rs)</label>
               <input type="number" className="form-input" placeholder={total} value={amountPaid} onChange={e => setAmountPaid(e.target.value)} />

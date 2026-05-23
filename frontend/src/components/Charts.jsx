@@ -23,7 +23,7 @@ export function SalesAreaChart({ data }) {
             <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
         <XAxis dataKey="_id" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />
@@ -37,7 +37,7 @@ export function SalesBarChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
         <XAxis dataKey="_id" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />

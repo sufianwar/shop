@@ -27,7 +27,7 @@ export default function Navbar({ sidebarWidth }) {
       position: "fixed", top: 0, right: 0,
       left: sidebarWidth,
       height: "var(--navbar-h)", zIndex: 99,
-      background: "rgba(10,15,30,0.85)",
+      background: "var(--glass)",
       backdropFilter: "blur(12px)",
       borderBottom: "1px solid var(--border)",
       display: "flex", alignItems: "center",

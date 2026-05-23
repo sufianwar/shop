@@ -20,6 +20,7 @@ import expenseRoutes from "./routes/expenses.js";
 import categoryRoutes from "./routes/categories.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import ledgerRoutes from "./routes/ledger.js";
+import manualPaymentRoutes from "./routes/manualPayments.js";
 import returnRoutes from "./routes/returns.js";
 
 // Middleware
@@ -58,6 +59,7 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ledger", ledgerRoutes);
+app.use("/api/manual-payments", manualPaymentRoutes);
 app.use("/api/returns", returnRoutes);
 
 // Health check

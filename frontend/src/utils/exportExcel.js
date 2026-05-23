@@ -17,10 +17,12 @@ export const exportSalesExcel = (sales) => {
     "Subtotal (Rs)": s.subtotal,
     "Discount (Rs)": s.discount,
     "Total (Rs)": s.total,
+    "Paid Amount (Rs)": s.paid_amount || s.amountPaid,
+    "Due Amount (Rs)": s.due_amount || 0,
     "Profit (Rs)": s.profit,
     "Payment": s.paymentMethod,
     "Cashier": s.cashierName,
-    "Status": s.status,
+    "Status": s.payment_status || s.status,
   }));
   exportToExcel(data, "sales_report", "Sales");
 };

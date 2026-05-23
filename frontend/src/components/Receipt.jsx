@@ -17,6 +17,11 @@ export default function Receipt({ sale, settings, onClose, onPrint }) {
       <div className="receipt-preview" id="receipt-content">
         <div className="receipt-shop-name">{shop.shopName}</div>
         <div className="receipt-tagline">{shop.tagline}</div>
+        {sale.is_deleted && (
+          <div style={{ color: "red", fontWeight: "bold", textAlign: "center", border: "2px solid red", padding: "4px", margin: "10px 0", transform: "rotate(-5deg)", fontSize: 16 }}>
+            CANCELLED / DELETED
+          </div>
+        )}
         <div className="receipt-divider" />
         <div className="receipt-row"><span>Invoice:</span><span>{sale.invoiceNo}</span></div>
         <div className="receipt-row"><span>Date:</span><span>{fmtDate(sale.createdAt)}</span></div>
@@ -37,7 +42,9 @@ export default function Receipt({ sale, settings, onClose, onPrint }) {
         <div className="receipt-row receipt-total"><span>TOTAL</span><span>{fmtRs(sale.total)}</span></div>
         <div className="receipt-divider" />
         <div className="receipt-row"><span>Payment</span><span style={{ textTransform: "capitalize" }}>{sale.paymentMethod}</span></div>
-        <div className="receipt-row"><span>Received</span><span>{fmtRs(sale.amountPaid)}</span></div>
+        <div className="receipt-row"><span>Status</span><span style={{ textTransform: "capitalize", fontWeight: "bold" }}>{sale.payment_status}</span></div>
+        <div className="receipt-row"><span>Received</span><span>{fmtRs(sale.paid_amount || sale.amountPaid)}</span></div>
+        {sale.due_amount > 0 && <div className="receipt-row"><span>Due Amount</span><span>{fmtRs(sale.due_amount)}</span></div>}
         <div className="receipt-row"><span>Change</span><span>{fmtRs(sale.change || 0)}</span></div>
         <div className="receipt-divider" />
         <div className="receipt-row"><span>Customer</span><span>{sale.customerName}</span></div>

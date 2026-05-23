@@ -13,19 +13,19 @@ export const getDashboardStats = async (req, res) => {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
     const [todaySales, weekSales, monthSales, totalProducts, allProducts, totalCustomers, recentSales, topProducts, monthExpenses] = await Promise.all([
-      Sale.aggregate([{ $match: { createdAt: { $gte: today }, status: "completed" } }, { $group: { _id: null, revenue: { $sum: "$total" }, profit: { $sum: "$profit" }, count: { $sum: 1 } } }]),
+      Sale.aggregate([{ $match: { createdAt: { $gte: today }, status: "completed", is_deleted: { $ne: true } } }, { $group: { _id: null, revenue: { $sum: "$total" }, profit: { $sum: "$profit" }, count: { $sum: 1 } } }]),
       Sale.aggregate([
-        { $match: { createdAt: { $gte: weekAgo }, status: "completed" } },
+        { $match: { createdAt: { $gte: weekAgo }, status: "completed", is_deleted: { $ne: true } } },
         { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, revenue: { $sum: "$total" }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
-      Sale.aggregate([{ $match: { createdAt: { $gte: monthStart }, status: "completed" } }, { $group: { _id: null, revenue: { $sum: "$total" }, profit: { $sum: "$profit" }, count: { $sum: 1 } } }]),
+      Sale.aggregate([{ $match: { createdAt: { $gte: monthStart }, status: "completed", is_deleted: { $ne: true } } }, { $group: { _id: null, revenue: { $sum: "$total" }, profit: { $sum: "$profit" }, count: { $sum: 1 } } }]),
       Product.countDocuments({ isActive: true }),
       Product.find({ isActive: true }, { stock: 1, minStock: 1 }),
       Customer.countDocuments(),
-      Sale.find({ status: "completed" }).sort("-createdAt").limit(8).select("invoiceNo customerName total createdAt paymentMethod status"),
+      Sale.find({ status: { $ne: "refunded" }, is_deleted: { $ne: true } }).sort("-createdAt").limit(8).select("invoiceNo customerName total createdAt paymentMethod status payment_status total_amount paid_amount due_amount"),
       Sale.aggregate([
-        { $match: { createdAt: { $gte: monthStart }, status: "completed" } },
+        { $match: { createdAt: { $gte: monthStart }, status: "completed", is_deleted: { $ne: true } } },
         { $unwind: "$items" },
         { $group: { _id: "$items.name", totalQty: { $sum: "$items.qty" }, totalRev: { $sum: "$items.subtotal" } } },
         { $sort: { totalRev: -1 } },

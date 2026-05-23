@@ -1,0 +1,326 @@
+/* Monthly statement layout (screen + iframe print) */
+@page {
+  size: A5 portrait;
+  margin: 8mm;
+}
+
+.statement-container,
+.statement-page {
+  --statement-primary: #1e293b;
+  --statement-border: #e2e8f0;
+  --statement-bg: #f8fafc;
+}
+
+.statement-page {
+  width: 148mm;
+  min-height: 210mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 10mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: var(--statement-primary);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.statement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--statement-primary);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.shop-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #1e1b4b;
+}
+
+.shop-tagline {
+  margin: 2px 0;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.shop-contact {
+  margin: 0;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.statement-title-box {
+  text-align: right;
+}
+
+.statement-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--statement-primary);
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--statement-primary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--statement-border);
+}
+
+.customer-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.info-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.info-value {
+  font-size: 12px;
+  color: #1e293b;
+}
+
+.info-subtext {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.statement-container .text-right,
+.statement-page .text-right {
+  text-align: right;
+}
+
+.statement-container .text-center,
+.statement-page .text-center {
+  text-align: center;
+}
+
+.balance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.balance-card {
+  padding: 8px 10px;
+  background: var(--statement-bg);
+  border: 1px solid var(--statement-border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balance-card.highlight {
+  background: #fff;
+  border: 2px solid var(--statement-primary);
+}
+
+.balance-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.balance-amount {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.statement-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.statement-table th {
+  background: var(--statement-bg);
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 700;
+  color: #475569;
+  border-bottom: 2px solid var(--statement-border);
+}
+
+.statement-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--statement-border);
+  font-size: 10px;
+}
+
+.statement-totals {
+  margin: 16px 0 20px;
+  border: 2px solid var(--statement-primary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--statement-border);
+  background: var(--statement-bg);
+}
+
+.totals-row:last-child {
+  border-bottom: none;
+}
+
+.totals-row-final {
+  background: var(--statement-primary);
+  color: #fff;
+}
+
+.totals-row-final .totals-label {
+  color: #e2e8f0;
+}
+
+.totals-row-final .totals-value {
+  color: #fff !important;
+  font-size: 13px;
+}
+
+.totals-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.totals-value {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.item-details {
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.adjusted-badge {
+  font-size: 10px;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  border: 1px solid #f59e0b;
+}
+
+.table-empty-msg {
+  padding: 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 10px;
+}
+
+.signature-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.sig-box {
+  width: 140px;
+  text-align: center;
+}
+
+.sig-line {
+  border-bottom: 1px solid #94a3b8;
+  margin-bottom: 6px;
+  height: 28px;
+}
+
+.sig-box span {
+  font-size: 9px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.statement-container .footer-actions {
+  padding: 20px;
+  border-top: 1px solid var(--statement-border);
+  background: #fff;
+  border-radius: 0 0 12px 12px;
+}
+
+.statement-container .text-emerald,
+.statement-page .text-emerald {
+  color: #059669;
+}
+
+.statement-container .text-rose,
+.statement-page .text-rose {
+  color: #e11d48;
+}
+
+.statement-container .font-bold,
+.statement-page .font-bold {
+  font-weight: 700;
+}
+
+.statement-print-hint {
+  margin: 0;
+  padding: 0 20px 16px;
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+}
+
+@media print {
+  html,
+  body {
+    width: 148mm;
+    height: auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .statement-page {
+    width: 148mm !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .balance-card {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .statement-title,
+  .totals-row-final,
+  .statement-table th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -7,7 +7,7 @@ export const buildInvoiceData = async (sale) => {
   return {
     shop: {
       name: setting?.shopName || "MARHABA PHOTOSTATE & COMPUTER",
-      tagline: setting?.shopTagline || "Stationery • Printing • POS",
+      tagline: setting?.shopTagline || "All In OnePoint",
       phone1: setting?.phone1 || "0333-6297546",
       phone2: setting?.phone2 || "0334-7791579",
       address: setting?.address || "",

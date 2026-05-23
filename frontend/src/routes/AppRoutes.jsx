@@ -16,7 +16,10 @@ import Suppliers from "../pages/Suppliers";
 import Expenses from "../pages/Expenses";
 import Analytics from "../pages/Analytics";
 import Reports from "../pages/Reports";
+import Ledger from "../pages/Ledger";
 import Settings from "../pages/Settings";
+import DeletedSales from "../pages/DeletedSales";
+import Returns from "../pages/Returns";
 import NotFound from "../pages/NotFound";
 
 export default function AppRoutes() {
@@ -39,6 +42,9 @@ export default function AppRoutes() {
         <Route path="/expenses" element={<ProtectedRoute roles={["admin", "manager"]}><Expenses /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute roles={["admin", "manager"]}><Analytics /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute roles={["admin", "manager"]}><Reports /></ProtectedRoute>} />
+        <Route path="/ledger" element={<ProtectedRoute roles={["admin", "manager"]}><Ledger /></ProtectedRoute>} />
+        <Route path="/returns" element={<Returns />} />
+        <Route path="/sales/deleted" element={<ProtectedRoute roles={["admin"]}><DeletedSales /></ProtectedRoute>} />
         <Route path="/settings" element={
           <ProtectedRoute roles={["admin", "manager"]}><Settings /></ProtectedRoute>
         } />

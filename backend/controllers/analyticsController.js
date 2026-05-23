@@ -6,15 +6,24 @@ import Purchase from "../models/Purchase.js";
 
 export const getSalesAnalytics = async (req, res) => {
   try {
-    const { period = "30" } = req.query;
-    const days = parseInt(period);
-    const from = new Date();
-    from.setDate(from.getDate() - days);
-    from.setHours(0, 0, 0, 0);
+    const { period = "30", startDate, endDate } = req.query;
+    let from, to;
+    if (startDate && endDate) {
+      from = new Date(startDate);
+      to = new Date(endDate);
+      to.setHours(23, 59, 59, 999);
+    } else {
+      const days = parseInt(period);
+      from = new Date();
+      from.setDate(from.getDate() - days);
+      from.setHours(0, 0, 0, 0);
+      to = new Date();
+    }
+    const matchQuery = { createdAt: { $gte: from, $lte: to }, status: "completed" };
 
     // Daily sales for chart
     const dailySales = await Sale.aggregate([
-      { $match: { createdAt: { $gte: from }, status: "completed" } },
+      { $match: matchQuery },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -28,7 +37,7 @@ export const getSalesAnalytics = async (req, res) => {
 
     // Top products
     const topProducts = await Sale.aggregate([
-      { $match: { createdAt: { $gte: from }, status: "completed" } },
+      { $match: matchQuery },
       { $unwind: "$items" },
       {
         $group: {
@@ -44,11 +53,18 @@ export const getSalesAnalytics = async (req, res) => {
 
     // Payment methods breakdown
     const paymentMethods = await Sale.aggregate([
-      { $match: { createdAt: { $gte: from }, status: "completed" } },
+      { $match: matchQuery },
       { $group: { _id: "$paymentMethod", count: { $sum: 1 }, total: { $sum: "$total" } } },
     ]);
 
-    res.json({ dailySales, topProducts, paymentMethods });
+    // Total Expenses
+    const expenses = await Expense.aggregate([
+      { $match: { date: { $gte: from, $lte: to } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const totalExpenses = expenses[0]?.total || 0;
+
+    res.json({ dailySales, topProducts, paymentMethods, totalExpenses });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
