@@ -49,7 +49,7 @@ export default function Receipt({ sale, settings, onClose, onPrint }) {
         <div className="receipt-divider" />
         <div className="receipt-row"><span>Customer</span><span>{sale.customerName}</span></div>
         <div className="receipt-divider" />
-        <div className="receipt-footer">THANK YOU 😊<br />Visit Again!<br /><br />{shop.shopName}<br />Ph: {shop.phone1}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{shop.phone2}</div>
+        <div className="receipt-footer">THANK YOU 😊<br />Visit Again!<br />Ph:{shop.phone1}/{shop.phone2}</div>
       </div>
       <div className="no-print" style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>Close</button>

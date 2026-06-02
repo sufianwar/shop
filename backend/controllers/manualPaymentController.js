@@ -2,6 +2,7 @@ import ManualPayment from "../models/ManualPayment.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
 import Ledger from "../models/Ledger.js";
+import { applyFIFOSettlement } from "../services/invoiceSettlementService.js";
 
 const PAYMENT_METHODS = ["cash", "card", "online", "credit", "other"];
 
@@ -152,6 +153,47 @@ export const createManualPayment = async (req, res) => {
       });
     }
 
+    // If no specific sale/invoice provided, treat this as a general FIFO payment
+    if (!sale && (totalBillAmount === undefined || totalBillAmount === null || String(totalBillAmount).trim() === "")) {
+      // Delegate to FIFO settlement flow inline
+      const received = Number(receivedAmount);
+      if (!received || received <= 0) return res.status(400).json({ message: "Received amount must be greater than 0" });
+
+      const settlement = await applyFIFOSettlement(customerId, received, req.user._id);
+
+      const payment = await ManualPayment.create({
+        customer: customerId,
+        customerName: customer.name,
+        totalBillAmount: settlement.totalPaymentApplied,
+        receivedAmount: received,
+        remainingBalance: settlement.remainingPayment,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        paymentMethod: paymentMethod || "cash",
+        status: settlement.remainingPayment === 0 ? "Paid" : "Partial",
+        notes: notes || "",
+        appliedInvoices: settlement.affectedInvoices.map((i) => ({
+          sale: i.invoiceId,
+          invoiceNo: i.invoiceNo,
+          amountApplied: i.amountApplied,
+        })),
+        addedBy: req.user._id,
+      });
+
+      const ledgerEntry = await createLedgerCredit(
+        customer,
+        received,
+        `Manual Payment (FIFO) - Invoices: ${payment.appliedInvoices.map((i) => i.invoiceNo).join(", ")}`,
+        payment.appliedInvoices.length > 0 ? payment.appliedInvoices.map((i) => i.invoiceNo).join(", ") : "",
+        null,
+        req.user._id
+      );
+
+      payment.ledgerEntry = ledgerEntry._id;
+      await payment.save();
+
+      return res.status(201).json({ payment, settlement });
+    }
+
     const received = Number(receivedAmount);
     const totalBill = sale
       ? sale.total_amount || sale.total
@@ -202,14 +244,73 @@ export const createManualPayment = async (req, res) => {
     await payment.save();
 
     if (sale) {
+      // Keep legacy and new invoice payment fields synchronized
       sale.paid_amount = newPaid;
       sale.amountPaid = newPaid;
+      sale.paidAmount = newPaid;
       sale.due_amount = remaining;
+      sale.remainingAmount = remaining;
       sale.payment_status = status;
+      sale.paymentStatus = status === "Paid" ? "Paid" : newPaid > 0 ? "Partial" : "Unpaid";
       await sale.save();
     }
 
     res.status(201).json(payment);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// New flow: when no specific sale/invoice is provided, apply FIFO settlement
+export const createManualPaymentFIFO = async (req, res) => {
+  try {
+    const { customerId, receivedAmount, paymentDate, paymentMethod, notes } = req.body;
+    if (!customerId) return res.status(400).json({ message: "Customer is required" });
+    const received = Number(receivedAmount);
+    if (!received || received <= 0) return res.status(400).json({ message: "Received amount must be greater than 0" });
+    if (paymentMethod && !PAYMENT_METHODS.includes(paymentMethod)) {
+      return res.status(400).json({ message: "Invalid payment method" });
+    }
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+    // Apply FIFO settlement across unpaid invoices
+    const settlement = await applyFIFOSettlement(customerId, received, req.user._id);
+
+    // Create manual payment record storing affected invoices
+    const payment = await ManualPayment.create({
+      customer: customerId,
+      customerName: customer.name,
+      totalBillAmount: settlement.totalPaymentApplied,
+      receivedAmount: received,
+      remainingBalance: settlement.remainingPayment,
+      paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+      paymentMethod: paymentMethod || "cash",
+      status: settlement.remainingPayment === 0 ? "Paid" : "Partial",
+      notes: notes || "",
+      appliedInvoices: settlement.affectedInvoices.map((i) => ({
+        sale: i.invoiceId,
+        invoiceNo: i.invoiceNo,
+        amountApplied: i.amountApplied,
+      })),
+      addedBy: req.user._id,
+    });
+
+    // Create a single ledger entry for the received amount (reduces customer's balance)
+    const ledgerEntry = await createLedgerCredit(
+      customer,
+      received,
+      `Manual Payment (FIFO) - Invoices: ${payment.appliedInvoices.map((i) => i.invoiceNo).join(", ")}`,
+      payment.appliedInvoices.length > 0 ? payment.appliedInvoices.map((i) => i.invoiceNo).join(", ") : "",
+      null,
+      req.user._id
+    );
+
+    payment.ledgerEntry = ledgerEntry._id;
+    await payment.save();
+
+    res.status(201).json({ payment, settlement });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -242,6 +343,28 @@ export const updateManualPayment = async (req, res) => {
     if (!customer) return res.status(404).json({ message: "Customer not found" });
 
     await reverseLedgerCredit(payment.ledgerEntry, customer, oldReceived);
+
+    // If payment was applied across multiple invoices, revert those applications first
+    if (payment.appliedInvoices && payment.appliedInvoices.length > 0) {
+      for (const ai of payment.appliedInvoices) {
+        try {
+          const s = await Sale.findById(ai.sale);
+          if (!s) continue;
+          const amountApplied = ai.amountApplied || 0;
+          s.paidAmount = Math.max(0, (s.paidAmount || 0) - amountApplied);
+          s.remainingAmount = Math.max(0, (s.remainingAmount || 0) + amountApplied);
+          s.paid_amount = s.paidAmount;
+          s.due_amount = s.remainingAmount;
+          if (s.remainingAmount === 0) s.paymentStatus = "Paid";
+          else if (s.paidAmount > 0) s.paymentStatus = "Partial";
+          else s.paymentStatus = "Unpaid";
+          s.payment_status = s.paymentStatus === "Paid" ? "Paid" : s.paidAmount > 0 ? "Partial" : "Pending";
+          await s.save();
+        } catch (e) {
+          // continue
+        }
+      }
+    }
 
     let sale = null;
     if (payment.sale) {
@@ -320,8 +443,40 @@ export const deleteManualPayment = async (req, res) => {
     const customer = await Customer.findById(payment.customer);
     if (!customer) return res.status(404).json({ message: "Customer not found" });
 
+    // Reverse ledger (adds back the credited amount to customer's balance)
     await reverseLedgerCredit(payment.ledgerEntry, customer, payment.receivedAmount);
 
+    // If this payment was applied across multiple invoices (FIFO), revert each
+    if (payment.appliedInvoices && payment.appliedInvoices.length > 0) {
+      for (const ai of payment.appliedInvoices) {
+        try {
+          const sale = await Sale.findById(ai.sale);
+          if (!sale) continue;
+
+          // Revert applied amounts on the invoice
+          const amountApplied = ai.amountApplied || 0;
+          sale.paidAmount = Math.max(0, (sale.paidAmount || 0) - amountApplied);
+          sale.remainingAmount = Math.max(0, (sale.remainingAmount || 0) + amountApplied);
+
+          // Keep legacy fields in sync
+          sale.paid_amount = sale.paidAmount;
+          sale.due_amount = sale.remainingAmount;
+
+          // Update payment status
+          if (sale.remainingAmount === 0) sale.paymentStatus = "Paid";
+          else if (sale.paidAmount > 0) sale.paymentStatus = "Partial";
+          else sale.paymentStatus = "Unpaid";
+
+          sale.payment_status = sale.paymentStatus === "Paid" ? "Paid" : sale.paidAmount > 0 ? "Partial" : "Pending";
+
+          await sale.save();
+        } catch (e) {
+          // continue on errors per-invoice
+        }
+      }
+    }
+
+    // If this payment was tied to a single sale, revert that invoice as before
     if (payment.sale) {
       const sale = await Sale.findById(payment.sale);
       if (sale) {
@@ -330,6 +485,12 @@ export const deleteManualPayment = async (req, res) => {
         const totalBill = sale.total_amount || sale.total;
         sale.due_amount = Math.max(0, totalBill - sale.paid_amount);
         sale.payment_status = computeStatus(totalBill, sale.paid_amount);
+
+        // sync new fields
+        sale.paidAmount = sale.paid_amount;
+        sale.remainingAmount = sale.due_amount;
+        sale.paymentStatus = sale.payment_status === "Paid" ? "Paid" : sale.paid_amount > 0 ? "Partial" : "Unpaid";
+
         await sale.save();
       }
     }
@@ -380,10 +541,10 @@ export const getCustomerPendingInvoices = async (req, res) => {
       customer: customerId,
       is_deleted: { $ne: true },
       status: { $ne: "refunded" },
-      due_amount: { $gt: 0 },
+      paymentStatus: { $in: ["Unpaid", "Partial"] },
     })
-      .select("invoiceNo total_amount total paid_amount due_amount payment_status customerName createdAt")
-      .sort("-createdAt")
+      .select("invoiceNo total_amount total paid_amount due_amount payment_status paidAmount remainingAmount paymentStatus customerName createdAt")
+      .sort({ createdAt: 1 })
       .lean();
 
     res.json(
@@ -392,9 +553,9 @@ export const getCustomerPendingInvoices = async (req, res) => {
         invoiceNo: s.invoiceNo,
         customerName: s.customerName,
         totalBillAmount: s.total_amount || s.total,
-        paidAmount: s.paid_amount || 0,
-        dueAmount: s.due_amount || 0,
-        paymentStatus: normalizePaymentStatus(s.payment_status),
+        paidAmount: s.paidAmount || s.paid_amount || 0,
+        dueAmount: s.remainingAmount ?? s.due_amount ?? 0,
+        paymentStatus: s.paymentStatus || normalizePaymentStatus(s.payment_status),
         createdAt: s.createdAt,
       }))
     );

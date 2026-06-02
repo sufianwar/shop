@@ -9,6 +9,7 @@ import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import Sales from "../pages/Sales";
 import Purchase from "../pages/Purchase";
+import PurchaseDetail from "../components/PurchaseDetail";
 import Products from "../pages/Products";
 import Categories from "../pages/Categories";
 import Customers from "../pages/Customers";
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<ProtectedRoute roles={["admin", "manager"]}><Categories /></ProtectedRoute>} />
         <Route path="/purchase" element={<ProtectedRoute roles={["admin", "manager"]}><Purchase /></ProtectedRoute>} />
+        <Route path="/purchases/:id" element={<ProtectedRoute roles={["admin", "manager"]}><PurchaseDetail /></ProtectedRoute>} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/suppliers" element={<ProtectedRoute roles={["admin", "manager"]}><Suppliers /></ProtectedRoute>} />
         <Route path="/expenses" element={<ProtectedRoute roles={["admin", "manager"]}><Expenses /></ProtectedRoute>} />

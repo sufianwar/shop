@@ -9,6 +9,15 @@ const manualPaymentSchema = new mongoose.Schema(
     totalBillAmount: { type: Number, required: true },
     receivedAmount: { type: Number, required: true },
     remainingBalance: { type: Number, required: true },
+    // For payments that are applied across multiple invoices (FIFO),
+    // store details of affected invoices for auditing and reversal.
+    appliedInvoices: [
+      {
+        sale: { type: mongoose.Schema.Types.ObjectId, ref: "Sale" },
+        invoiceNo: { type: String },
+        amountApplied: { type: Number },
+      },
+    ],
     paymentDate: { type: Date, required: true },
     paymentMethod: {
       type: String,

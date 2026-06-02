@@ -99,6 +99,19 @@ export default function ManualPaymentPanel({
       .catch(() => setPendingInvoices([]));
   }, [form.customerId]);
 
+  // When pending invoices load, if no specific invoice selected and total not set,
+  // auto-fill Total Bill Amount with customer's total outstanding (FIFO target).
+  useEffect(() => {
+    if (!form.customerId) return;
+    if (form.saleId) return; // invoice selected explicitly
+    const totalDue = (pendingInvoices || []).reduce((s, inv) => s + (inv.dueAmount || 0), 0);
+    if (totalDue > 0 && (!form.totalBillAmount || String(form.totalBillAmount).trim() === "")) {
+      setForm((f) => ({ ...f, totalBillAmount: String(totalDue) }));
+      // pre-fill receivedAmount to total due for convenience (user can change)
+      setForm((f) => ({ ...f, receivedAmount: String(totalDue) }));
+    }
+  }, [pendingInvoices]);
+
   const previewRemaining = useMemo(() => {
     const total = Number(form.totalBillAmount) || 0;
     const received = Number(form.receivedAmount) || 0;
@@ -202,7 +215,8 @@ export default function ManualPaymentPanel({
       customerId: form.customerId,
       saleId: form.saleId || undefined,
       invoiceNo: form.invoiceNo,
-      totalBillAmount: Number(form.totalBillAmount),
+      // If no specific invoice selected, omit totalBillAmount to trigger FIFO settlement
+      ...(form.saleId || editing ? { totalBillAmount: Number(form.totalBillAmount) } : {}),
       receivedAmount: Number(form.receivedAmount),
       paymentDate: form.paymentDate,
       paymentMethod: form.paymentMethod,

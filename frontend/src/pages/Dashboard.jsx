@@ -40,8 +40,8 @@ export default function Dashboard() {
 
   const load = () => {
     setLoading(true);
-    analyticsService.getDashboard().then(({ data }) => {
-      setStats(data);
+    analyticsService.getDashboard().then((dashRes) => {
+      setStats(dashRes.data);
     }).finally(() => setLoading(false));
   };
 

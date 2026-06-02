@@ -97,12 +97,29 @@ export const createSale = async (req, res) => {
 
     const invoiceNo = await getNextInvoiceNo();
 
+    let paymentStatus = "Pending";
+    if (actualPaid === total) paymentStatus = "Paid";
+    else if (actualPaid > 0 && actualPaid < total) paymentStatus = "Partial";
+    else if (actualPaid === 0) paymentStatus = "Pending";
+
+    // Determine invoice payment status for FIFO settlement
+    let invoicePaymentStatus = "Unpaid";
+    if (actualPaid >= total) {
+      invoicePaymentStatus = "Paid";
+    } else if (actualPaid > 0) {
+      invoicePaymentStatus = "Partial";
+    }
+
     const sale = await Sale.create({
       invoiceNo, items, subtotal, discount, tax, total,
       total_amount: total,
       paid_amount: actualPaid,
       due_amount: due,
       payment_status,
+      // Invoice payment tracking
+      paidAmount: actualPaid,
+      remainingAmount: due,
+      paymentStatus: invoicePaymentStatus,
       profit: totalProfit - discount,
       paymentMethod: due > 0 ? "credit" : paymentMethod,
       amountPaid: actualPaid, change,

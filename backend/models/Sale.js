@@ -28,6 +28,10 @@ const saleSchema = new mongoose.Schema(
     paid_amount: { type: Number, default: 0 },
     due_amount: { type: Number, default: 0 },
     payment_status: { type: String, enum: ["Paid", "Partial", "Pending", "completed", "refunded", "pending"], default: "Paid" },
+    // Invoice payment tracking fields for FIFO settlement
+    paidAmount: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
+    paymentStatus: { type: String, enum: ["Unpaid", "Partial", "Paid"], default: "Unpaid" },
     change: { type: Number, default: 0 },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     customerName: { type: String, default: "Walk-in Customer" },
