@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Table from "../components/Table";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -26,6 +26,16 @@ export default function Products() {
   const [delItem, setDelItem] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // Barcode scanner states
+  const [barcodeFocused, setBarcodeFocused] = useState(false);
+  const [barcodeError, setBarcodeError] = useState("");
+  const [barcodeChecking, setBarcodeChecking] = useState(false);
+  const [barcodeValid, setBarcodeValid] = useState(false);
+  const barcodeInputRef = useRef(null);
+  const scanBufferRef = useRef("");
+  const scanTimerRef = useRef(null);
+  const checkTimerRef = useRef(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -38,17 +48,104 @@ export default function Products() {
 
   useEffect(() => { load(); }, [load]);
 
-  const openAdd = () => { setForm(EMPTY_FORM); setEditItem(null); setShowModal(true); };
-  const openEdit = (p) => { setForm({ ...p }); setEditItem(p); setShowModal(true); };
+  // Reset barcode validation state when modal opens/closes
+  useEffect(() => {
+    if (!showModal) {
+      setBarcodeError("");
+      setBarcodeChecking(false);
+      setBarcodeValid(false);
+      scanBufferRef.current = "";
+    }
+  }, [showModal]);
+
+  // Debounced barcode uniqueness check
+  const validateBarcode = useCallback((barcode, excludeId) => {
+    setBarcodeError("");
+    setBarcodeValid(false);
+
+    if (!barcode || barcode.trim() === "") {
+      setBarcodeChecking(false);
+      return;
+    }
+
+    clearTimeout(checkTimerRef.current);
+    setBarcodeChecking(true);
+    checkTimerRef.current = setTimeout(async () => {
+      try {
+        const { data } = await productService.checkBarcode(barcode, excludeId);
+        if (data.exists) {
+          setBarcodeError(`⚠️ Barcode "${barcode}" is already assigned to "${data.product.name}"`);
+          setBarcodeValid(false);
+        } else {
+          setBarcodeError("");
+          setBarcodeValid(true);
+        }
+      } catch {
+        // If check fails, allow save and let server-side validation handle it
+        setBarcodeValid(true);
+      }
+      setBarcodeChecking(false);
+    }, 400);
+  }, []);
+
+  // Handle barcode field keydown — detect scanner input (rapid sequential keystrokes)
+  const handleBarcodeKeyDown = useCallback((e) => {
+    // Scanner sends characters rapidly followed by Enter
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const scanned = scanBufferRef.current.trim();
+      if (scanned.length >= 3) {
+        // Apply scanned value
+        setForm(prev => ({ ...prev, barcode: scanned }));
+        validateBarcode(scanned, editItem?._id);
+        toast.success(`📷 Barcode scanned: ${scanned}`, { duration: 2000, icon: "✅" });
+      }
+      scanBufferRef.current = "";
+      clearTimeout(scanTimerRef.current);
+      return;
+    }
+
+    // Build scan buffer — scanner input arrives within ~50ms between keystrokes
+    if (e.key.length === 1) {
+      scanBufferRef.current += e.key;
+      clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = setTimeout(() => {
+        // Reset buffer after pause (human typing speed)
+        scanBufferRef.current = "";
+      }, 100);
+    }
+  }, [editItem, validateBarcode]);
+
+  // Handle manual barcode input changes
+  const handleBarcodeChange = (e) => {
+    const val = e.target.value;
+    setForm({ ...form, barcode: val });
+    validateBarcode(val, editItem?._id);
+  };
+
+  const openAdd = () => { setForm(EMPTY_FORM); setEditItem(null); setBarcodeError(""); setBarcodeValid(false); setShowModal(true); };
+  const openEdit = (p) => { setForm({ ...p }); setEditItem(p); setBarcodeError(""); setBarcodeValid(false); setShowModal(true); };
 
   const save = async (e) => {
     e.preventDefault();
+    if (barcodeError) {
+      toast.error("Please fix the barcode error before saving");
+      barcodeInputRef.current?.focus();
+      return;
+    }
     setSaving(true);
     try {
       if (editItem) { await productService.update(editItem._id, form); toast.success("Product updated"); }
       else { await productService.add(form); toast.success("Product added"); }
       setShowModal(false); load();
-    } catch (err) { toast.error(err.response?.data?.message || "Error saving"); }
+    } catch (err) {
+      const msg = err.response?.data?.message || "Error saving";
+      if (err.response?.data?.duplicateBarcode) {
+        setBarcodeError(`⚠️ ${msg}`);
+        barcodeInputRef.current?.focus();
+      }
+      toast.error(msg);
+    }
     finally { setSaving(false); }
   };
 
@@ -88,6 +185,15 @@ export default function Products() {
       </div>
     )},
   ];
+
+  // Barcode field border color based on validation state
+  const barcodeBorderColor = barcodeError
+    ? "var(--rose, #e11d48)"
+    : barcodeValid && form.barcode
+    ? "var(--emerald, #10b981)"
+    : barcodeFocused
+    ? "var(--primary, #6366f1)"
+    : undefined;
 
   return (
     <div>
@@ -161,10 +267,79 @@ export default function Products() {
               <input type="number" min={0} className="form-input" value={form.minStock} onChange={e => setForm({ ...form, minStock: Number(e.target.value) })} />
             </div>
           </div>
+
+          {/* Enhanced Barcode Field with Scanner Support */}
           <div className="form-row" style={{ marginBottom: 14 }}>
-            <div className="form-group">
-              <label className="form-label">Barcode (7-digit, auto-generated if empty)</label>
-              <input className="form-input" style={{ fontFamily: "monospace" }} placeholder="1234567" value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} />
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span>📊 Barcode</span>
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 400 }}>
+                  {editItem ? "" : "(auto-generated if empty)"}
+                </span>
+                {barcodeFocused && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, color: "var(--primary, #6366f1)",
+                    background: "rgba(99,102,241,0.1)", padding: "2px 8px", borderRadius: 10,
+                    animation: "pulse 2s infinite",
+                  }}>
+                    📷 Scanner Ready
+                  </span>
+                )}
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  ref={barcodeInputRef}
+                  id="barcode-input"
+                  className="form-input"
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: 15,
+                    letterSpacing: 2,
+                    paddingRight: 40,
+                    borderColor: barcodeBorderColor,
+                    borderWidth: barcodeError || (barcodeValid && form.barcode) ? 2 : undefined,
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    boxShadow: barcodeFocused ? `0 0 0 3px rgba(99,102,241,0.15)` : undefined,
+                  }}
+                  placeholder="Scan or type barcode..."
+                  value={form.barcode}
+                  onChange={handleBarcodeChange}
+                  onKeyDown={handleBarcodeKeyDown}
+                  onFocus={() => setBarcodeFocused(true)}
+                  onBlur={() => setBarcodeFocused(false)}
+                  autoComplete="off"
+                />
+                {/* Status indicator */}
+                <span style={{
+                  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                  fontSize: 16, pointerEvents: "none",
+                }}>
+                  {barcodeChecking ? "⏳" : barcodeError ? "❌" : barcodeValid && form.barcode ? "✅" : ""}
+                </span>
+              </div>
+              {/* Error message */}
+              {barcodeError && (
+                <div style={{
+                  marginTop: 6, fontSize: 12, color: "var(--rose, #e11d48)",
+                  fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+                  background: "rgba(225,29,72,0.06)", padding: "6px 10px", borderRadius: 6,
+                }}>
+                  {barcodeError}
+                </div>
+              )}
+              {/* Success message */}
+              {barcodeValid && form.barcode && !barcodeError && (
+                <div style={{
+                  marginTop: 6, fontSize: 11, color: "var(--emerald, #10b981)",
+                  fontWeight: 500,
+                }}>
+                  ✅ Barcode is available
+                </div>
+              )}
+              {/* Scanner hint */}
+              <div style={{ marginTop: 4, fontSize: 11, color: "var(--muted)" }}>
+                💡 Click here and scan with USB scanner — value fills automatically
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Unit</label>
@@ -175,13 +350,16 @@ export default function Products() {
               </select>
             </div>
           </div>
+
           <div className="form-group" style={{ marginBottom: 14 }}>
             <label className="form-label">Description</label>
             <input className="form-input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Saving..." : editItem ? "Update" : "Add Product"}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving || !!barcodeError || barcodeChecking}>
+              {saving ? "Saving..." : editItem ? "Update" : "Add Product"}
+            </button>
           </div>
         </form>
       </Modal>
@@ -190,6 +368,14 @@ export default function Products() {
         isOpen={!!delItem} onClose={() => setDelItem(null)} onConfirm={handleDelete}
         title="Delete Product" message={`Delete "${delItem?.name}"? This cannot be undone.`} danger
       />
+
+      {/* Pulse animation for scanner indicator */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }

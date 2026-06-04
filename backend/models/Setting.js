@@ -17,6 +17,7 @@ const settingSchema = new mongoose.Schema(
     invoicePrefix: { type: String, default: "INV" },
     lastInvoiceNum: { type: Number, default: 1000 },
     lastBarcodeNum: { type: Number, default: 1000000 },
+    thermalPrinterName: { type: String, default: "POS-58" },
   },
   { timestamps: true }
 );

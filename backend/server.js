@@ -22,6 +22,7 @@ import dashboardRoutes from "./routes/dashboard.js";
 import ledgerRoutes from "./routes/ledger.js";
 import manualPaymentRoutes from "./routes/manualPayments.js";
 import returnRoutes from "./routes/returns.js";
+import printRoutes from "./routes/print.js";
 
 // Middleware
 import { notFound } from "./middleware/notFoundMiddleware.js";
@@ -47,6 +48,7 @@ app.use(morgan("dev"));
 // Static folders
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -61,6 +63,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ledger", ledgerRoutes);
 app.use("/api/manual-payments", manualPaymentRoutes);
 app.use("/api/returns", returnRoutes);
+app.use("/api/print", printRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "OK", time: new Date() }));

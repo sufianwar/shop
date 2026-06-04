@@ -13,6 +13,7 @@ const DEFAULTS = {
   lowStockThreshold: 5,
   receiptFooter: "THANK YOU 😊\nVisit Again!",
   invoicePrefix: "INV",
+  thermalPrinterName: "POS-58",
 };
 
 export default function Settings() {
@@ -143,7 +144,15 @@ export default function Settings() {
       {tab === "receipt" && (
         <div className="card" style={{ maxWidth: 500 }}>
           <h3 style={{ marginBottom: 20 }}>🧾 Receipt Settings</h3>
-          <div className="form-group" style={{ marginBottom: 14 }}><label className="form-label">Invoice Prefix</label><input className="form-input" value={settings.invoicePrefix} onChange={e => setSettings({ ...settings, invoicePrefix: e.target.value })} /></div>
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label className="form-label">Invoice Prefix</label>
+            <input className="form-input" value={settings.invoicePrefix} onChange={e => setSettings({ ...settings, invoicePrefix: e.target.value })} />
+          </div>
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label className="form-label">Thermal Printer Name (Windows/USB)</label>
+            <input className="form-input" placeholder="e.g. POS-58" value={settings.thermalPrinterName} onChange={e => setSettings({ ...settings, thermalPrinterName: e.target.value })} />
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>This must exactly match the printer name in your Windows Printers & Scanners settings.</div>
+          </div>
           <div className="form-group" style={{ marginBottom: 20 }}>
             <label className="form-label">Receipt Footer Message</label>
             <textarea className="form-input" rows={3} style={{ resize: "vertical" }} value={settings.receiptFooter} onChange={e => setSettings({ ...settings, receiptFooter: e.target.value })} />
